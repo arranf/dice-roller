@@ -1,10 +1,10 @@
 [package]
-name = "dice_roller"
+name = "dnd_dice_roller"
 version = "0.1.0"
 authors = ["Arran France <arran@arranfrance.com>"]
 edition = "2018"
 description = "A simple dice rolling library for dnd dice strings"
-repository = "https://github.com/arranf/dice_roller"
+repository = "https://github.com/arranf/dnd_dice_roller"
 license = "MIT"
 readme = "README.md"
 

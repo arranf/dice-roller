@@ -1,5 +1,7 @@
 # dice_roller
-A simple Rust library for taking a dice string as an input.
+A simple Rust library for taking a dice string as an input and calculating a result.
+
+# Usage
 
 ```
 use dice_roller::dice::Dice;
