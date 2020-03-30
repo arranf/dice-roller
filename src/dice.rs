@@ -62,8 +62,16 @@ impl Dice {
     /// # Examples
     /// ```
     /// use dice_roller::dice::Dice;
+    ///
     /// let dice = Dice::create_dice("3d6 + 1").unwrap();
     /// ```
+    ///
+    /// ```
+    /// use dice_roller::dice::Dice;
+    ///
+    /// let dice = Dice::create_dice("d6").unwrap();
+    /// ```
+    ///
     /// # Errors
     /// Errors can occur if the dice input string is in the wrong format `DiceError::ParseError`.
     pub fn create_dice(input: &str) -> Result<Dice, DiceError> {
@@ -71,6 +79,14 @@ impl Dice {
     }
 
     /// Rolls a dice and produces a `DiceResult`. Using underlying OS RNG for the dice roll.
+    ///
+    /// # Examples
+    /// ```
+    /// use dice_roller::dice::Dice;
+    ///
+    /// let dice = Dice::create_dice("2d20 + 1").unwrap();
+    /// let result = dice.roll_dice();
+    /// ```
     #[must_use]
     pub fn roll_dice(&self) -> DiceResult {
         let mut rng = rand::thread_rng();
@@ -78,6 +94,17 @@ impl Dice {
     }
 
     /// Rolls a dice and produces a `DiceResult`. Uses a source of RNG passed in. Useful for testing.
+    ///
+    /// # Examples
+    /// ```
+    /// use rand::SeedableRng;
+    /// use dice_roller::dice::Dice;
+    ///
+    /// let rng = rand_pcg::Pcg64Mcg::seed_from_u64(42);
+    /// let dice = Dice::new(1, 6, None);
+    /// let result = dice.roll_dice_from_rng(rng);
+    /// assert_eq!(result.final_result, 2);
+    /// ```
     #[allow(clippy::cast_possible_wrap)]
     pub fn roll_dice_from_rng<R: Rng + Sized>(&self, mut rng: R) -> DiceResult {
         let mut roll_results: Vec<u32> = Vec::new();
