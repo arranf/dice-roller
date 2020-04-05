@@ -182,14 +182,14 @@ impl Dice {
         let current_roll_set_size = self.number_of_dice_to_roll as usize;
         let mut first_roll_results: Vec<u32> = Vec::with_capacity(current_roll_set_size);
         for _ in 0..self.number_of_dice_to_roll {
-            first_roll_results.push(rng.gen_range(1, &self.sides));
+            first_roll_results.push(rng.gen_range(1, &self.sides + 1));
         }
 
         let second_roll_results: Option<Vec<u32>> = match self.roll_type {
             RollType::Advantage | RollType::Disadvantage => {
                 let mut second_roll_results: Vec<u32> = Vec::with_capacity(current_roll_set_size);
                 for _ in 0..self.number_of_dice_to_roll {
-                    second_roll_results.push(rng.gen_range(1, &self.sides));
+                    second_roll_results.push(rng.gen_range(1, &self.sides + 1));
                 }
                 Some(second_roll_results)
             }
@@ -266,13 +266,13 @@ mod tests {
     }
 
     #[test]
-    fn modifier_added_to_predictable_result_one_d6_with_advantage_equals_three() {
+    fn modifier_added_to_predictable_result_one_d6_with_advantage_equals_six() {
         let rng = rand_pcg::Pcg64Mcg::seed_from_u64(SEED);
         let dice = Dice::new(1, 6, None, RollType::Advantage);
         let result = dice.roll_dice_from_rng(rng);
-        let expected = 3;
+        let expected = 6;
         assert_eq!(result.final_result, expected);
-        assert_eq!(result.dice_results, RawResults::new(vec![2], Some(vec![3])));
+        assert_eq!(result.dice_results, RawResults::new(vec![2], Some(vec![6])));
     }
 
     #[test]
@@ -280,29 +280,29 @@ mod tests {
         let rng = rand_pcg::Pcg64Mcg::seed_from_u64(SEED);
         let dice = Dice::from_str("1d6 advantage").expect("No error parsing dice");
         let result = dice.roll_dice_from_rng(rng);
-        let expected = 3;
+        let expected = 6;
         assert_eq!(result.final_result, expected);
-        assert_eq!(result.dice_results, RawResults::new(vec![2], Some(vec![3])));
+        assert_eq!(result.dice_results, RawResults::new(vec![2], Some(vec![6])));
     }
 
     #[test]
-    fn modifier_added_to_predictable_result_one_d6_with_disadvantage_equals_three() {
+    fn modifier_added_to_predictable_result_one_d6_with_disadvantage_equals_two() {
         let rng = rand_pcg::Pcg64Mcg::seed_from_u64(SEED);
         let dice = Dice::new(1, 6, None, RollType::Disadvantage);
         let result = dice.roll_dice_from_rng(rng);
         let expected = 2;
         assert_eq!(result.final_result, expected);
-        assert_eq!(result.dice_results, RawResults::new(vec![2], Some(vec![3])));
+        assert_eq!(result.dice_results, RawResults::new(vec![2], Some(vec![6])));
     }
 
     #[test]
-    fn produces_predictable_results_one_d6_parsed_with_disadvantage_equals_three() {
+    fn produces_predictable_results_one_d6_parsed_with_disadvantage_equals_two() {
         let rng = rand_pcg::Pcg64Mcg::seed_from_u64(SEED);
         let dice = Dice::from_str("1d6 d").expect("No error parsing dice");
         let result = dice.roll_dice_from_rng(rng);
         let expected = 2;
         assert_eq!(result.final_result, expected);
-        assert_eq!(result.dice_results, RawResults::new(vec![2], Some(vec![3])));
+        assert_eq!(result.dice_results, RawResults::new(vec![2], Some(vec![6])));
     }
 
     #[test]
@@ -310,9 +310,9 @@ mod tests {
         let rng = rand_pcg::Pcg64Mcg::seed_from_u64(SEED);
         let dice = Dice::new(3, 6, Some(2), RollType::Regular);
         let result = dice.roll_dice_from_rng(rng);
-        let expected = 11;
+        let expected = 15;
         assert_eq!(result.final_result, expected);
-        assert_eq!(result.dice_results, RawResults::new(vec![2, 3, 4], None));
+        assert_eq!(result.dice_results, RawResults::new(vec![2, 6, 5], None));
     }
 
     #[test]
@@ -320,9 +320,9 @@ mod tests {
         let rng = rand_pcg::Pcg64Mcg::seed_from_u64(SEED);
         let dice = Dice::from_str("3d6+2").expect("No error parsing dice");
         let result = dice.roll_dice_from_rng(rng);
-        let expected = 11;
+        let expected = 15;
         assert_eq!(result.final_result, expected);
-        assert_eq!(result.dice_results, RawResults::new(vec![2, 3, 4], None));
+        assert_eq!(result.dice_results, RawResults::new(vec![2, 6, 5], None));
     }
 
     #[test]
@@ -335,6 +335,33 @@ mod tests {
             let result = dice.roll_dice();
             if result.final_result > expected_max || result.final_result < expected_min {
                 panic!("Value outside expected range");
+            }
+        }
+    }
+    #[test]
+    fn roll_dice_within_range_check_occurences() {
+        let dice = Dice::new(1, 20, None, RollType::Regular);
+        let expected_min = 1;
+        let expected_max = 20;
+
+        let number_of_rolls = 100_000;
+        let mut results: Vec<i32> = Vec::with_capacity(100_000);
+        for _ in 0..number_of_rolls {
+            let result = dice.roll_dice();
+            if result.final_result > expected_max || result.final_result < expected_min {
+                panic!("Value outside expected range");
+            }
+            results.push(result.final_result);
+        }
+
+        let mut results = results.iter();
+
+        for searching_for in expected_min..=expected_max {
+            if !results.any(|&item| item == searching_for) {
+                panic!(format!(
+                    "Could not find value {} in {} iterations of results",
+                    searching_for, number_of_rolls
+                ));
             }
         }
     }
