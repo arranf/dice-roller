@@ -1,13 +1,12 @@
-# dice_roller
+# dnd_dice_roller
+
 A simple Rust library for taking a DnD like dice string as an input and calculating a result.
 
 Supports advantage and disadvantage.
 
-
-
 ## Usage
 
-```
+```rust
 use dice_roller::dice::{Dice, RollType};
 use std::str::FromStr;
 
@@ -21,6 +20,7 @@ let results = second_dice.roll_dice();
 ```
 
 ## Example inputs
+
 ```
 d6
 2d6
