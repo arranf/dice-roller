@@ -1,35 +1,32 @@
 use crate::{
     dice::{Dice, Operation},
     dice_result::{DiceSetResults, RollResult},
-    error::DiceError,
 };
 
-use std::str::FromStr;
-
-use dice_command_parser::parse_line;
 use rand::Rng;
 
 #[derive(Debug)]
+/// Represents a set of non-homogenous dice e.g. d20+2 + d4.
 pub struct DiceSet {
     dice: Vec<Dice>,
 }
 
 impl DiceSet {
+    /// Create a new dice set
     pub fn new(dice: Vec<Dice>) -> Self {
         DiceSet { dice }
     }
 
-    /// Rolls a dice and produces a `DiceResult`. Using underlying OS RNG for the dice roll.
+    /// Rolls a set of dice and produces a `DiceSetResults`. Using underlying OS RNG for the dice roll.
     ///
     /// # Examples
     /// ```
-    /// use std::str::FromStr;
+    /// use dnd_dice_roller::dice::{Dice, RollType, Operation};
     /// use dnd_dice_roller::dice_set::DiceSet;
-    /// # use dnd_dice_roller::error::DiceError;
     ///
-    /// let dice_set = DiceSet::from_str("2d20 + 1")?;
+    /// let dice = vec![Dice::new(2, 20, Some(1), RollType::Regular, Operation::Addition)];
+    /// let dice_set = DiceSet::new(dice);
     /// let result = dice_set.roll_dice_set();
-    /// # Ok::<(), DiceError>(())
     /// ```
     #[must_use]
     pub fn roll_dice_set(&self) -> DiceSetResults {
@@ -37,17 +34,17 @@ impl DiceSet {
         self.roll_dice_set_from_rng(&mut rng)
     }
 
-    /// Rolls a dice and produces a `DiceResult`. Uses a source of RNG passed in. Useful for testing.
+    /// Rolls a set of dice and produces a `DiceSetResults`. Uses a source of RNG passed in. Useful for testing.
     ///
     /// # Examples
     /// ```
     /// use rand::SeedableRng;
+    /// use dnd_dice_roller::dice::{Dice, RollType, Operation};
     /// use dnd_dice_roller::dice_set::DiceSet;
-    /// use std::str::FromStr;
-    /// # use dnd_dice_roller::error::DiceError;
     ///
     /// let rng = rand_pcg::Pcg64Mcg::seed_from_u64(42);
-    /// let dice_set = DiceSet::from_str("3d6 + 1").unwrap();
+    /// let dice = vec![Dice::new(3, 6, Some(1), RollType::Regular, Operation::Addition)];
+    /// let dice_set = DiceSet::new(dice);
     /// let result = dice_set.roll_dice_set_from_rng(rng);
     /// assert_eq!(result.final_result, 14);
     /// ```
@@ -69,46 +66,11 @@ impl DiceSet {
     }
 }
 
-impl FromStr for DiceSet {
-    type Err = DiceError;
-    /// Creates dice from an input string
-    ///
-    /// # Examples
-    /// ```
-    /// use dnd_dice_roller::dice_set::DiceSet;
-    /// use std::str::FromStr;
-    /// # use dnd_dice_roller::error::DiceError;
-    ///
-    /// let dice_set = DiceSet::from_str("3d6 + 1").unwrap();
-    ///
-    /// # Ok::<(), DiceError>(())
-    /// ```
-    ///
-    /// ```
-    /// use std::str::FromStr;
-    ///
-    /// use dnd_dice_roller::dice_set::DiceSet;
-    /// # use dnd_dice_roller::error::DiceError;
-    ///
-    /// let dice_set = DiceSet::from_str("d6")?;
-    ///
-    /// # Ok::<(), DiceError>(())
-    /// ```
-    ///
-    /// # Errors
-    /// Errors can occur if the dice input string is in the wrong format `DiceError::ParseError`.
-    fn from_str(input: &str) -> Result<Self, Self::Err> {
-        let dice_set = parse_line(&input)?
-            .iter()
-            .map(|d| Dice::from_parsed_dice_roll(d))
-            .collect();
-        Ok(Self::new(dice_set))
-    }
-}
-
 #[cfg(test)]
 mod test {
     use super::*;
+
+    use crate::dice::{Dice, Operation, RollType};
 
     use rand::SeedableRng;
 
@@ -117,7 +79,8 @@ mod test {
     #[test]
     fn produces_predictable_results_one_d6_parsed_equals_two() {
         let rng = rand_pcg::Pcg64Mcg::seed_from_u64(SEED);
-        let dice = DiceSet::from_str("1d6").expect("No error parsing dice");
+        let dice = Dice::new(1, 6, None, RollType::Regular, Operation::Addition);
+        let dice = DiceSet::new(vec![dice]);
         let result = dice.roll_dice_set_from_rng(rng);
         let expected = vec![RollResult::new(vec![2], None, 2)];
         assert_eq!(result.dice_results, expected);
@@ -127,7 +90,9 @@ mod test {
     #[test]
     fn produces_predictable_results_one_d6_parsed_with_advantage_equals_three() {
         let rng = rand_pcg::Pcg64Mcg::seed_from_u64(SEED);
-        let dice = DiceSet::from_str("1d6 advantage").expect("No error parsing dice");
+
+        let dice = Dice::new(1, 6, None, RollType::Advantage, Operation::Addition);
+        let dice = DiceSet::new(vec![dice]);
         let result = dice.roll_dice_set_from_rng(rng);
         let expected = vec![RollResult::new(vec![2], Some(vec![6]), 6)];
         assert_eq!(result.dice_results, expected);
@@ -137,7 +102,8 @@ mod test {
     #[test]
     fn produces_predictable_results_one_d6_parsed_with_disadvantage_equals_two() {
         let rng = rand_pcg::Pcg64Mcg::seed_from_u64(SEED);
-        let dice = DiceSet::from_str("1d6 d").expect("No error parsing dice");
+        let dice = Dice::new(1, 6, None, RollType::Disadvantage, Operation::Addition);
+        let dice = DiceSet::new(vec![dice]);
         let result = dice.roll_dice_set_from_rng(rng);
         let expected = vec![RollResult::new(vec![2], Some(vec![6]), 2)];
         assert_eq!(result.dice_results, expected);
@@ -147,7 +113,8 @@ mod test {
     #[test]
     fn produces_predictable_results_three_d6_plus_two_parsed() {
         let rng = rand_pcg::Pcg64Mcg::seed_from_u64(SEED);
-        let dice = DiceSet::from_str("3d6+2").expect("No error parsing dice");
+        let dice = Dice::new(3, 6, Some(2), RollType::Regular, Operation::Addition);
+        let dice = DiceSet::new(vec![dice]);
         let result = dice.roll_dice_set_from_rng(rng);
         let expected = vec![RollResult::new(vec![2, 6, 5], None, 15)];
         assert_eq!(result.dice_results, expected);
@@ -157,7 +124,13 @@ mod test {
     #[test]
     fn produces_predictable_results_dice_addition() {
         let rng = rand_pcg::Pcg64Mcg::seed_from_u64(SEED);
-        let dice = DiceSet::from_str("2d6+2 + d4").expect("No error parsing dice");
+
+        let dice = vec![
+            Dice::new(2, 6, Some(2), RollType::Regular, Operation::Addition),
+            Dice::new(1, 4, None, RollType::Regular, Operation::Addition),
+        ];
+
+        let dice = DiceSet::new(dice);
         let result = dice.roll_dice_set_from_rng(rng);
         let expected = vec![
             RollResult::new(vec![2, 6], None, 10),
@@ -170,7 +143,13 @@ mod test {
     #[test]
     fn produces_predictable_results_dice_subtraction() {
         let rng = rand_pcg::Pcg64Mcg::seed_from_u64(SEED);
-        let dice = DiceSet::from_str("2d6+2 - d4").expect("No error parsing dice");
+
+        let dice = vec![
+            Dice::new(2, 6, Some(2), RollType::Regular, Operation::Addition),
+            Dice::new(1, 4, None, RollType::Regular, Operation::Subtraction),
+        ];
+
+        let dice = DiceSet::new(dice);
         let result = dice.roll_dice_set_from_rng(rng);
         let expected = vec![
             RollResult::new(vec![2, 6], None, 10),
@@ -183,7 +162,14 @@ mod test {
     #[test]
     fn produces_predictable_results_dice_combined() {
         let rng = rand_pcg::Pcg64Mcg::seed_from_u64(SEED);
-        let dice = DiceSet::from_str("2d6+2 + d10+2 - 2d4-1").expect("No error parsing dice");
+
+        let dice = vec![
+            Dice::new(2, 6, Some(2), RollType::Regular, Operation::Addition),
+            Dice::new(1, 10, Some(2), RollType::Regular, Operation::Addition),
+            Dice::new(2, 4, Some(-1), RollType::Regular, Operation::Subtraction),
+        ];
+
+        let dice = DiceSet::new(dice);
         let result = dice.roll_dice_set_from_rng(rng);
         let expected = vec![
             RollResult::new(vec![2, 6], None, 10),

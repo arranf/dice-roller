@@ -1,17 +1,17 @@
 use crate::dice_result::RollResult;
 
 use dice_command_parser::{
-    dice_roll::DiceRoll, dice_roll::Operation as CommandOperation,
-    dice_roll::RollType as CommandRollType,
+    dice_roll::Operation as CommandOperation, dice_roll::RollType as CommandRollType,
+    dice_roll_with_op::DiceRollWithOp,
 };
 use rand::Rng;
 
 use std::cmp::{max, min};
 
-/// Represents a set of homogenous dice
+/// Represents a set of homogenous dice. E.G. Three d6
 #[derive(PartialEq, Debug)]
 pub struct Dice {
-    /// The number of dice in the set.
+    /// The number of dice in the set of homegenous dice.
     pub number_of_dice_to_roll: u32,
     /// How many sides each dice in the set has.
     pub sides: u32,
@@ -19,8 +19,7 @@ pub struct Dice {
     pub modifier: Option<i32>,
     /// Whether the dice set should roll as a `RollType::Regular` (which rolls once), or as a `RollType::Advantage` or `RollType::Disadvantage` which rolls twice.
     pub roll_type: RollType,
-
-    // Whether this dice should be added or taken from the overall total
+    /// Whether this dice should be added or taken from the overall total
     pub operation: Operation,
 }
 
@@ -45,8 +44,8 @@ pub enum Operation {
 }
 
 impl Dice {
-    pub(crate) fn from_parsed_dice_roll(parsed_roll: &DiceRoll) -> Self {
-        let roll_type = match parsed_roll.roll_type {
+    pub(crate) fn from_parsed_dice_roll(parsed_roll: &DiceRollWithOp) -> Self {
+        let roll_type = match parsed_roll.dice_roll.roll_type {
             CommandRollType::Regular => RollType::Regular,
             CommandRollType::WithAdvantage => RollType::Advantage,
             CommandRollType::WithDisadvantage => RollType::Disadvantage,
@@ -58,9 +57,9 @@ impl Dice {
         };
 
         Dice {
-            number_of_dice_to_roll: parsed_roll.number_of_dice_to_roll,
-            sides: parsed_roll.dice_sides,
-            modifier: parsed_roll.modifier,
+            number_of_dice_to_roll: parsed_roll.dice_roll.number_of_dice_to_roll,
+            sides: parsed_roll.dice_roll.dice_sides,
+            modifier: parsed_roll.dice_roll.modifier,
             roll_type,
             operation,
         }
@@ -124,14 +123,14 @@ impl Dice {
         let current_roll_set_size = self.number_of_dice_to_roll as usize;
         let mut first_roll_results: Vec<u32> = Vec::with_capacity(current_roll_set_size);
         for _ in 0..self.number_of_dice_to_roll {
-            first_roll_results.push(rng.gen_range(1, &self.sides + 1));
+            first_roll_results.push(rng.gen_range(1..=self.sides));
         }
 
         let second_roll_results: Option<Vec<u32>> = match self.roll_type {
             RollType::Advantage | RollType::Disadvantage => {
                 let mut second_roll_results: Vec<u32> = Vec::with_capacity(current_roll_set_size);
                 for _ in 0..self.number_of_dice_to_roll {
-                    second_roll_results.push(rng.gen_range(1, &self.sides + 1));
+                    second_roll_results.push(rng.gen_range(1..=self.sides));
                 }
                 Some(second_roll_results)
             }
@@ -264,10 +263,7 @@ mod tests {
 
         for searching_for in expected_min..=expected_max {
             if !results.any(|&item| item == searching_for) {
-                panic!(format!(
-                    "Could not find value {} in {} iterations of results",
-                    searching_for, number_of_rolls
-                ));
+                panic!("Could not find value expected value in all iterations of results");
             }
         }
     }
