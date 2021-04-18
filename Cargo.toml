@@ -1,6 +1,6 @@
 [package]
 name = "dnd_dice_roller"
-version = "0.5.0"
+version = "0.5.1"
 authors = ["Arran France <arran@arranfrance.com>"]
 edition = "2018"
 description = "A simple dice rolling library for dnd dice strings"
@@ -11,7 +11,7 @@ readme = "README.md"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-dice-command-parser = "0.7.1"
+dice-command-parser = "0.7.2"
 rand = "0.8.3"
 thiserror = "1.0"
 rand_pcg = "0.3.0"
